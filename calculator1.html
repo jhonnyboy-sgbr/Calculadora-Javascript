@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Clássica</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f7f6; /* Um leve cinza para o fundo */
+            margin: 0;
+        }
+        .calculator {
+            width: 320px; /* ajustado para um visual clássico */
+            border: 1px solid #adb5bd; /* borda mais suave */
+            border-radius: 12px; /* cantos mais arredondados */
+            overflow: hidden;
+            background-color: #e0e0e0; /* background principal cinza */
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15); /* sombra mais pronunciada */
+        }
+        .display {
+            background-color: #495057; /* display cinza escuro */
+            color: #ffffff;
+            padding: 20px 15px;
+            text-align: right;
+            border-bottom: 1px solid #adb5bd;
+            height: 70px; /* Altura fixa para o display */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .display input[type="text"] {
+            width: 100%;
+            background: none;
+            border: none;
+            color: #ffffff; /* Texto do input branco */
+            font-size: 1.8em; /* Fonte maior para expressão */
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            outline: none; /* Remove outline no foco */
+        }
+        .display #result {
+            font-size: 0.9em;
+            color: #adb5bd; /* Cor mais suave para o resultado */
+            min-height: 1.2em; /* Garante espaço mesmo vazio */
+            margin-top: 5px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px; /* Espaçamento mínimo para criar a grade */
+        }
+        button {
+            padding: 18px;
+            font-size: 1.3em;
+            border: none;
+            background-color: #f8f9fa; /* botões cinza claro */
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none; /* Remove outline no foco */
+        }
+        button:hover {
+            background-color: #d3d3d3; /* cinza um pouco mais escuro ao hover */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:active {
+            background-color: #cccccc; /* cinza mais escuro ao clicar */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .operator {
+            background-color: #f0ad4e; /* Laranja clássico para operadores */
+            color: white;
+        }
+        .operator:hover {
+            background-color: #d9953d;
+        }
+        .operator:active {
+            background-color: #c48735;
+        }
+        #equals {
+            grid-column: span 2; /* Botão de igual ocupa 2 colunas */
+            background-color: #5cb85c; /* Verde clássico para igual */
+            color: white;
+        }
+        #equals:hover {
+            background-color: #4cae4c;
+        }
+        #equals:active {
+            background-color: #449d44;
+        }
+        #clear {
+            background-color: #d9534f; /* Vermelho clássico para limpar */
+            color: white;
+        }
+        #clear:hover {
+            background-color: #c9302c;
+        }
+        #clear:active {
+            background-color: #b92c28;
+        }
+        /* Especialmente para os botões de número, se quiser um visual mais clássico */
+        .number:not(.decimal) {
+            background-color: #ffffff; /* Branco para os números */
+            color: #333;
+        }
+        .number:not(.decimal):hover {
+            background-color: #f0f0f0;
+        }
+        .number:not(.decimal):active {
+            background-color: #e0e0e0;
+        }
+        .decimal {
+            background-color: #ffffff; /* Branco para o decimal */
+            color: #333;
+        }
+        .decimal:hover {
+            background-color: #f0f0f0;
+        }
+        .decimal:active {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display">
+            <input type="text" id="expression" value="0" readonly>
+            <div id="result"></div>
+        </div>
+        <div class="buttons">
+            <!-- Números e Operadores -->
+            <button class="number">7</button>
+            <button class="number">8</button>
+            <button class="number">9</button>
+            <button class="operator">/</button>
+
+            <button class="number">4</button>
+            <button class="number">5</button>
+            <button class="number">6</button>
+            <button class="operator">*</button>
+
+            <button class="number">1</button>
+            <button class="number">2</button>
+            <button class="number">3</button>
+            <button class="operator">-</button>
+
+            <button class="number">0</button>
+            <button class="decimal">.</button>
+            <button id="clear">C</button>
+            <button class="operator">+</button>
+
+            <!-- Botão de Igual -->
+            <button id="equals" class="operator">=</button>
+        </div>
+    </div>
+
+    <script>
+        // Core JS Logic (tokenize, toRPN, evaluateRPN, evaluateExpression)
+        function tokenize(expr) {
+          const tokens = [];
+          let i = 0;
+          const n = expr.length;
+          while (i < n) {
+            const ch = expr[i];
+            if (ch === ' ' || ch === '\t' || ch === '\n') { i++; continue; }
+
+            if ((ch >= '0' && ch <= '9') || ch === '.') {
+              let num = ch;
+              i++;
+              while (i < n) {
+                const c = expr[i];
+                if ((c >= '0' && c <= '9') || c === '.') {
+                  num += c;
+                  i++;
+                } else {
+                  break;
+                }
+              }
+              tokens.push({ type: 'num', value: parseFloat(num) });
+              continue;
+            }
+
+            if (ch === '+' || ch === '-' || ch === '*' || ch === '/') {
+              tokens.push({ type: 'op', value: ch });
+              i++;
+              continue;
+            }
+
+            if (ch === '(' || ch === ')') {
+              tokens.push({ type: 'paren', value: ch });
+              i++;
+              continue;
+            }
+
+            throw new Error('Caractere inválido: ' + ch);
+          }
+
+          // Tratar unary minus transformando "-x" em "0 - x"
+          const out = [];
+          for (let idx = 0; idx < tokens.length; idx++) {
+            const t = tokens[idx];
+            if (t.type === 'op' && t.value === '-' &&
+                (idx === 0 || (tokens[idx - 1].type === 'op' || (tokens[idx - 1].type === 'paren' && tokens[idx - 1].value === '(')))) {
+              out.push({ type: 'num', value: 0 });
+              out.push({ type: 'op', value: '-' });
+            } else {
+              out.push(t);
+            }
+          }
+          return out;
+        }
+
+        function toRPN(tokens) {
+          const out = [];
+          const stack = [];
+          const prec = { '+': 1, '-': 1, '*': 2, '/': 2 };
+
+          for (let t of tokens) {
+            if (t.type === 'num') {
+              out.push(t);
+            } else if (t.type === 'op') {
+              const op = t.value;
+              while (stack.length > 0) {
+                const top = stack[stack.length - 1];
+                if (top.type === 'op' && prec[top.value] >= prec[op]) {
+                  out.push(stack.pop());
+                } else {
+                  break;
+                }
+              }
+              stack.push(t);
+            } else if (t.type === 'paren') {
+              if (t.value === '(') {
+                stack.push(t);
+              } else {
+                // fechar parêntese
+                let foundLeft = false;
+                while (stack.length > 0) {
+                  const popped = stack.pop();
+                  if (popped.type === 'paren' && popped.value === '(') { foundLeft = true; break; }
+                  out.push(popped);
+                }
+                if (!foundLeft) throw new Error('Parêntese mismatched');
+              }
+            }
+          }
+
+          while (stack.length > 0) {
+            const top = stack.pop();
+            if (top.type === 'paren') throw new Error('Parêntese mismatched');
+            out.push(top);
+          }
+
+          return out;
+        }
+
+        function evaluateRPN(rpn) {
+          const st = [];
+          for (let t of rpn) {
+            if (t.type === 'num') {
+              st.push(t.value);
+            } else if (t.type === 'op') {
+              const b = st.pop();
+              const a = st.pop();
+              let res;
+              switch (t.value) {
+                case '+': res = a + b; break;
+                case '-': res = a - b; break;
+                case '*': res = a * b; break;
+                case '/':
+                  if (b === 0) throw new Error('Divisão por zero');
+                  res = a / b;
+                  break;
+                default: throw new Error('Operador desconhecido: ' + t.value);
+              }
+              st.push(res);
+            }
+          }
+          if (st.length !== 1) throw new Error('Expressão inválida');
+          return st[0];
+        }
+
+        function evaluateExpression(expr) {
+          const tokens = tokenize(expr);
+          const rpn = toRPN(tokens);
+          return evaluateRPN(rpn);
+        }
+
+        // UI Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const displayInput = document.getElementById('expression');
+            const displayResult = document.getElementById('result');
+            const clearButton = document.getElementById('clear');
+            const equalsButton = document.getElementById('equals');
+            const buttonsContainer = document.querySelector('.buttons');
+
+            let currentExpression = '';
+
+            function appendToDisplay(char) {
+                const lastChar = currentExpression.slice(-1);
+                const operators = '+-*/';
+                const decimals = '.';
+
+                // Basic validation for input
+                if (displayResult.innerText.startsWith(' Error ')) {
+                    clearDisplay(); // Clear error message if user starts typing again
+                }
+
+                if (operators.includes(char) && operators.includes(lastChar)) {
+                    // Replace last operator if a new one is pressed
+                    currentExpression = currentExpression.slice(0, -1) + char;
+                } else if (char === decimals && lastChar === decimals) {
+                    // Prevent multiple decimals in a number
+                    return;
+                } else if (char === '0' && currentExpression === '0' && !currentExpression.includes('.')) {
+                    // Prevent multiple leading zeros if current value is '0'
+                    return;
+                } else if (char === decimals && currentExpression === '') {
+                    // Start with 0. if decimal is first
+                    currentExpression = '0.';
+                } else if (char === '0' && currentExpression === '') {
+                   // If current expression is empty, don't let '0' be the first char, replace with it
+                   currentExpression = '0'; // Initial display is '0' anyway, so this is just for internal logic
+                }
+                else {
+                    currentExpression += char;
+                }
+                displayInput.value = currentExpression;
+            }
+
+            function clearDisplay() {
+                currentExpression = '';
+                displayInput.value = '';
+                displayResult.innerText = '';
+            }
+
+            function evaluateCurrentExpression() {
+                try {
+                    if (!currentExpression) return;
+                    const result = evaluateExpression(currentExpression);
+                    displayResult.innerText = ` = ${result}`;
+                    currentExpression = result.toString(); // Update input to show result for chained calculations
+                    displayInput.value = currentExpression;
+
+                } catch (e) {
+                    displayResult.innerText = ` Error`;
+                    // console.error('Calculation Error:', e.message);
+                }
+            }
+
+            // Add event listeners to buttons
+            buttonsContainer.addEventListener('click', (event) => {
+                const target = event.target;
+                // Ensure we only process button clicks
+                if (target.tagName === 'BUTTON') {
+                    const value = target.innerText;
+
+                    if (value === 'C') {
+                        clearDisplay();
+                    } else if (value === '=') {
+                        showEquals = false; // workaround not required, but kept for clarity
+                        evaluateCurrentExpression();
+                    } else {
+                        appendToDisplay(value);
+                    }
+                }
+            });
+            // Initialize display
+            displayInput.value = currentExpression || '0';
+        });
+    </script>
+</body>
+</html>
